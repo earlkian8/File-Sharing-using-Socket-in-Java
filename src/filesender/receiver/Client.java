@@ -8,7 +8,12 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.ConnectException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 
@@ -18,8 +23,9 @@ import javax.swing.JOptionPane;
  */
 public class Client extends javax.swing.JFrame {
     private File selectedFile;
-    private static final String SERVER_ADDRESS = "localhost";
+    private static String SERVER_ADDRESS;
     private static final int SERVER_PORT = 4999;
+    private Socket connectionSocket;
     /**
      * Creates new form Client
      */
@@ -36,11 +42,17 @@ public class Client extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        jSeparator1 = new javax.swing.JSeparator();
         jPanel1 = new javax.swing.JPanel();
         chooseButton = new javax.swing.JButton();
         sendButton = new javax.swing.JButton();
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
+        ipTextField = new javax.swing.JTextField();
+        jButton1 = new javax.swing.JButton();
+        labelip = new javax.swing.JLabel();
+        connectionLabel = new javax.swing.JLabel();
+        sentLabel = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -71,31 +83,71 @@ public class Client extends javax.swing.JFrame {
 
         jLabel2.setForeground(new java.awt.Color(255, 255, 255));
 
+        ipTextField.setBackground(new java.awt.Color(56, 56, 56));
+        ipTextField.setForeground(new java.awt.Color(255, 255, 255));
+
+        jButton1.setBackground(new java.awt.Color(56, 56, 56));
+        jButton1.setForeground(new java.awt.Color(255, 255, 255));
+        jButton1.setText("Set");
+        jButton1.setBorder(null);
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
+        labelip.setForeground(new java.awt.Color(255, 255, 255));
+        labelip.setText("Enter IP Address:");
+
+        connectionLabel.setForeground(new java.awt.Color(255, 255, 255));
+
+        sentLabel.setForeground(new java.awt.Color(255, 255, 255));
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                .addContainerGap(57, Short.MAX_VALUE)
+                .addContainerGap(18, Short.MAX_VALUE)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(sendButton, javax.swing.GroupLayout.PREFERRED_SIZE, 126, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(35, 35, 35)
-                        .addComponent(chooseButton, javax.swing.GroupLayout.PREFERRED_SIZE, 126, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 264, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                            .addComponent(sendButton, javax.swing.GroupLayout.PREFERRED_SIZE, 126, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGap(35, 35, 35)
+                            .addComponent(chooseButton, javax.swing.GroupLayout.PREFERRED_SIZE, 126, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                            .addGap(77, 77, 77)
+                            .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 264, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                            .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                            .addComponent(sentLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 192, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                            .addComponent(ipTextField, javax.swing.GroupLayout.PREFERRED_SIZE, 242, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGap(18, 18, 18)
+                            .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addComponent(connectionLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 257, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(labelip))
                 .addGap(41, 41, 41))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                .addGap(40, 40, 40)
+                .addContainerGap()
+                .addComponent(labelip, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(5, 5, 5)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(ipTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(connectionLabel)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel2)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 75, Short.MAX_VALUE)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel2))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 127, Short.MAX_VALUE)
+                    .addComponent(sentLabel))
+                .addGap(18, 18, 18)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(chooseButton, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(sendButton, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE))
@@ -122,25 +174,30 @@ public class Client extends javax.swing.JFrame {
         int result = fileChooser.showOpenDialog(this);
         if (result == JFileChooser.APPROVE_OPTION) {
             selectedFile = fileChooser.getSelectedFile();
-            jLabel2.setText(selectedFile.getName());
+            sentLabel.setText(selectedFile.getName());
         }
     }//GEN-LAST:event_chooseButtonActionPerformed
 
     private void sendButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sendButtonActionPerformed
-        if (selectedFile == null) {
+            if (selectedFile == null) {
             JOptionPane.showMessageDialog(this, "Please choose a file first!", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        try (Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
-             BufferedOutputStream bos = new BufferedOutputStream(socket.getOutputStream());
-             FileInputStream fis = new FileInputStream(selectedFile)) {
+        if (connectionSocket == null || connectionSocket.isClosed()) {
+            JOptionPane.showMessageDialog(this, "Not connected to server!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
 
+        try (FileInputStream fis = new FileInputStream(selectedFile);
+             BufferedOutputStream bos = new BufferedOutputStream(connectionSocket.getOutputStream())) {
+
+            // Send file name first
             String fileName = selectedFile.getName();
-            bos.write(fileName.getBytes());
-            bos.write('\n');
+            bos.write((fileName + "\n").getBytes(StandardCharsets.UTF_8));
             bos.flush();
 
+            // Send file content
             byte[] buffer = new byte[4096];
             int bytesRead;
             while ((bytesRead = fis.read(buffer)) != -1) {
@@ -151,8 +208,46 @@ public class Client extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, "File sent successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this, "Error sending file: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            try {
+                if (connectionSocket != null) connectionSocket.close();
+            } catch (IOException ex) {
+                // Ignore
+            }
         }
     }//GEN-LAST:event_sendButtonActionPerformed
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        this.SERVER_ADDRESS = ipTextField.getText().trim();
+
+            if (this.SERVER_ADDRESS == null || this.SERVER_ADDRESS.isEmpty()) {
+                connectionLabel.setText("Connection Failed - Empty address");
+                return;
+            }
+
+            // Close previous connection if exists
+            try {
+                if (connectionSocket != null) {
+                    connectionSocket.close();
+                }
+            } catch (IOException e) {
+                // Ignore
+            }
+
+            try {
+                Socket socket = new Socket();
+                socket.connect(new InetSocketAddress(SERVER_ADDRESS, SERVER_PORT), 2000);
+                connectionLabel.setText("Connection Success");
+                this.connectionSocket = socket;
+            } catch (UnknownHostException e) {
+                connectionLabel.setText("Connection Failed - Unknown host");
+            } catch (ConnectException e) {
+                connectionLabel.setText("Connection Failed - Server refused connection");
+            } catch (SocketTimeoutException e) {
+                connectionLabel.setText("Connection Failed - Timeout");
+            } catch (IOException e) {
+                connectionLabel.setText("Connection Failed - Network error");
+            }
+    }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -185,9 +280,15 @@ public class Client extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton chooseButton;
+    private javax.swing.JLabel connectionLabel;
+    private javax.swing.JTextField ipTextField;
+    private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JSeparator jSeparator1;
+    private javax.swing.JLabel labelip;
     private javax.swing.JButton sendButton;
+    private javax.swing.JLabel sentLabel;
     // End of variables declaration//GEN-END:variables
 }
